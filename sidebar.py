@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+from typing import Optional
 
 st.sidebar.subheader('Query parameters')
 
@@ -55,4 +56,17 @@ def get_data():
     if file is not None:
         data = upload_file(file)
 
+    display_options(data)
+
     return data
+
+
+def display_options(data: Optional[pd.DataFrame] = None):
+    options = st.sidebar.radio(
+        'Pages', options=['Data Analysis', 'Data visualization', 'Forecasting'])
+
+#     if options == 'Data Analysis':
+#         if data is not None:
+#             analyze_data(data)
+#         else:
+#             st.warning("No file or empty file")
