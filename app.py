@@ -3,6 +3,10 @@ import pandas as pd
 import plotly.express as px
 from sidebar import get_data
 
+from prophet import Prophet
+from prophet.plot import plot_plotly
+from plotly import graph_objs as go
+
 data = get_data()
 
 
@@ -52,6 +56,45 @@ def show_data_shape(data):
     st.write("Number of columns")
     st.write(data.shape[1])
 
+#################### Forecasting ####################
+def plot_raw_data(data):
+    data = data.sort_values(by='DATE_ONLY')
+    fig = px.line(data, x='DATEONLY', y='QUANTITY', title='Time Series Data')
+    st.plotly_chart(fig)
+
+
+def predict_demand_prophet(data):
+    st.write("### Demand Forecasting")
+    n_years = st.slider('Years of prediction:', 1, 4)
+    period = n_years * 365
+
+    data['QUANTITY'] = abs(data['QUANTITY'])
+    data['CREATED_DATE_UTC'] = pd.to_datetime(data['CREATED_DATE_UTC'])
+    data['DATE_ONLY'] = pd.to_datetime(data['CREATED_DATE_UTC'].dt.strftime('%Y-%m-%d'))
+
+    plot_raw_data(data)
+
+    # Predict forecast with Prophet.
+    df_train = data[['DATE_ONLY', 'QUANTITY']]
+    df_train = df_train.rename(columns={"DATE_ONLY": "ds", "QUANTITY": "y"})
+
+    m = Prophet()
+    m.fit(df_train)
+    future = m.make_future_dataframe(periods=period)
+    forecast = m.predict(future)
+
+    # Show and plot forecast
+    st.subheader('Forecast data')
+    st.write(forecast.tail())
+
+    st.write(f'Forecast plot for {n_years} years')
+    fig1 = plot_plotly(m, forecast)
+    st.plotly_chart(fig1)
+
+    st.write("Forecast components")
+    fig2 = m.plot_components(forecast)
+    st.write(fig2)
+
 
 def select_columns(data: pd.DataFrame):
     st.write("### Select Columns")
@@ -76,7 +119,10 @@ def select_columns(data: pd.DataFrame):
             show_percent_missing(renamed_df)
         with col3:
             show_unique_values(renamed_df)
+
         show_data_correlation(renamed_df)
+
+        predict_demand_prophet(renamed_df)
     else:
         st.warning("Please select at least one column.")
 
@@ -94,3 +140,9 @@ if data is not None:
 
     all_columns = data.columns.tolist()
     select_columns(data)
+
+
+
+
+
+
