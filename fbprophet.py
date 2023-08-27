@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 from plotly import graph_objs as go
 from prophet import Prophet
@@ -35,6 +36,9 @@ def display_metrics(test_data: pd.DataFrame, forecast: pd.DataFrame):
 
     mae = mean_absolute_error(test_data['y'], forecast['yhat'])
     st.write(f'**Mean Absolute Error:** {mae}')
+
+    mape = (mae / np.mean(test_data['y'])) * 100
+    st.write(f'**Mean Absolute Percentaje Error:** {mape}%')
 
 
 def forecast(data: pd.DataFrame, years: int):
