@@ -59,50 +59,62 @@ def show_data_shape(data):
 #################### Forecasting ####################
 def plot_raw_data(data):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=data['DATE_ONLY'],
-                  y=data['QUANTITY'], name="stock_open"))
+    fig.add_trace(go.Scatter(x=data['ds'],
+                  y=data['y'], name="stock_open"))
     fig.layout.update(
         title_text='Time series data with range slider', xaxis_rangeslider_visible=True)
     st.plotly_chart(fig)
 
 
-def predict_demand_prophet(data):
+def predict_demand_prophet(data: pd.DataFrame):
     st.write("### Demand Forecasting")
     n_years = st.slider('Years of prediction:', 1, 4)
     period = n_years * 365
 
-    data['QUANTITY'] = abs(data['QUANTITY'])
-    data['CREATED_DATE_UTC'] = pd.to_datetime(data['CREATED_DATE_UTC'])
-    data['DATE_ONLY'] = pd.to_datetime(data['CREATED_DATE_UTC'].dt.strftime('%Y-%m-%d'))
+    columns = data.columns.sort_values().tolist()
+    ds = st.selectbox("Select DS variable", [None] + columns)
+    y = st.selectbox("Select y variable", [None] + columns)
 
-    df_train = data[['DATE_ONLY', 'QUANTITY']]
-    final_df = df_train.groupby('DATE_ONLY')['QUANTITY'].sum().reset_index()
-    plot_raw_data(final_df)
+    if ds is not None and y is not None:
+        df_train = data[[ds, y]]
 
-    # Predict forecast with Prophet.
-    final_df = df_train.rename(columns={"DATE_ONLY": "ds", "QUANTITY": "y"})
+        remove_negative_values = st.checkbox("Remove negative values")
+        if remove_negative_values:
+            df_train[y] = abs(df_train[y])
+        group_values = st.checkbox("Group values by date")
+        if group_values:
+            df_train[ds] = pd.to_datetime(df_train[ds]).dt.strftime('%Y-%m-%d')
+            df_train = df_train.groupby(ds)[y].sum().reset_index()
 
-    m = Prophet()
-    m.fit(final_df)
-    future = m.make_future_dataframe(periods=period)
-    forecast = m.predict(future)
+        df_train = df_train.rename(columns={ds: "ds", y: "y"})
+        st.write(df_train)
+        plot_raw_data(df_train)
 
-    # Show and plot forecast
-    st.subheader('Forecast data')
-    st.write(forecast.tail())
+        m = Prophet()
+        m.fit(df_train)
+        future = m.make_future_dataframe(periods=period)
+        forecast = m.predict(future)
 
-    st.write(f'Forecast plot for {n_years} years')
-    fig1 = plot_plotly(m, forecast)
-    st.plotly_chart(fig1)
+        # Show and plot forecast
+        st.subheader('Forecast data')
+        st.write(forecast.tail())
 
-    st.write("Forecast components")
-    fig2 = m.plot_components(forecast)
-    st.write(fig2)
+        st.write(f'Forecast plot for {n_years} years')
+        fig1 = plot_plotly(m, forecast)
+        st.plotly_chart(fig1)
+
+        st.write("Forecast components")
+        fig2 = m.plot_components(forecast)
+        st.write(fig2)
+
+
+def predict_demand_xgboost(data):
+    return data
 
 
 def select_columns(data: pd.DataFrame):
     st.write("### Select Columns")
-    all_columns = data.columns.tolist()
+    all_columns = data.columns.sort_values().tolist()
     selected_columns = st.multiselect("Select columns", options=all_columns)
 
     if selected_columns:
@@ -125,13 +137,13 @@ def select_columns(data: pd.DataFrame):
             show_unique_values(renamed_df)
 
         show_data_correlation(renamed_df)
+        return renamed_df
 
-        predict_demand_prophet(renamed_df)
-    else:
-        st.warning("Please select at least one column.")
+    st.info("Please select at least one column.")
+    return None
 
 
-if data is not None:
+def show_data_analysis(data: pd.DataFrame):
     st.write('Data Dimension: ' +
              str(data.shape[0]) + ' rows and ' + str(data.shape[1]) + ' columns.')
     st.write(data)
@@ -143,10 +155,20 @@ if data is not None:
         st.write("Data Types ", data.dtypes)
 
     all_columns = data.columns.tolist()
-    select_columns(data)
+    return select_columns(data)
 
 
+if data is None:
+    st.info("Upload a dataset or enter the URL of an online dataset to get started.")
+else:
+    tab1, tab2 = st.tabs(["Data analysis", "Forecasting"])
+    with tab1:
+        df = show_data_analysis(data)
 
-
-
-
+    with tab2:
+        if df is not None and len(df.columns) >= 2:
+            model = st.selectbox("Select ML model", ["XGBoost", "FB Prophet"])
+            if model == "FB Prophet":
+                predict_demand_prophet(df)
+            else:
+                predict_demand_xgboost(df)
