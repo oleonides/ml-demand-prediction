@@ -58,8 +58,11 @@ def show_data_shape(data):
 
 #################### Forecasting ####################
 def plot_raw_data(data):
-    data = data.sort_values(by='DATE_ONLY')
-    fig = px.line(data, x='DATEONLY', y='QUANTITY', title='Time Series Data')
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=data['DATE_ONLY'],
+                  y=data['QUANTITY'], name="stock_open"))
+    fig.layout.update(
+        title_text='Time series data with range slider', xaxis_rangeslider_visible=True)
     st.plotly_chart(fig)
 
 
@@ -72,14 +75,15 @@ def predict_demand_prophet(data):
     data['CREATED_DATE_UTC'] = pd.to_datetime(data['CREATED_DATE_UTC'])
     data['DATE_ONLY'] = pd.to_datetime(data['CREATED_DATE_UTC'].dt.strftime('%Y-%m-%d'))
 
-    plot_raw_data(data)
+    df_train = data[['DATE_ONLY', 'QUANTITY']]
+    final_df = df_train.groupby('DATE_ONLY')['QUANTITY'].sum().reset_index()
+    plot_raw_data(final_df)
 
     # Predict forecast with Prophet.
-    df_train = data[['DATE_ONLY', 'QUANTITY']]
-    df_train = df_train.rename(columns={"DATE_ONLY": "ds", "QUANTITY": "y"})
+    final_df = df_train.rename(columns={"DATE_ONLY": "ds", "QUANTITY": "y"})
 
     m = Prophet()
-    m.fit(df_train)
+    m.fit(final_df)
     future = m.make_future_dataframe(periods=period)
     forecast = m.predict(future)
 
