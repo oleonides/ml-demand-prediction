@@ -41,7 +41,7 @@ def display_metrics(test_data: pd.DataFrame, forecast: pd.DataFrame):
     st.write(f'**Mean Absolute Percentaje Error:** {mape}%')
 
 
-def forecast(data: pd.DataFrame, years: int):
+def train_model(data: pd.DataFrame, years: int):
     period = years * 365
     train_data, test_data = train_test_split(
         data, test_size=0.2, shuffle=False)
@@ -60,10 +60,8 @@ def forecast(data: pd.DataFrame, years: int):
 
     st.markdown("---")
 
-    start = st.checkbox("Start forecast")
-    if start:
-        m = Prophet()
-        m.fit(data)
+    start_forecast = st.checkbox("Start forecast")
+    if start_forecast:
         future = m.make_future_dataframe(periods=period)
         forecast = m.predict(future)
 
@@ -106,6 +104,6 @@ def predict_demand_prophet(data: pd.DataFrame):
         st.write(new_data)
         plot_raw_data(new_data)
 
-        start = st.checkbox("Train model")
-        if start:
-            forecast(new_data, n_years)
+        start_training = st.checkbox("Train model")
+        if start_training:
+            train_model(new_data, n_years)

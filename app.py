@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 from sidebar import get_data
 from fbprophet import predict_demand_prophet
-from xgboost import predict_demand_xgboost
+from xgboost_forecasting import predict_demand_xgboost
 
 data = get_data()
 
@@ -14,7 +13,6 @@ def select_and_rename_column(data: pd.DataFrame):
     selected_columns = st.multiselect(
         "Select columns to rename", options=all_columns)
 
-    # Rename the selected columns
     for column in selected_columns:
         new_column_name = st.text_input(
             f"Enter new name for column '{column}'", value=column)
@@ -94,7 +92,6 @@ def show_data_analysis(data: pd.DataFrame):
     with col2:
         st.write("Data Types ", data.dtypes)
 
-    all_columns = data.columns.tolist()
     return select_columns(data)
 
 
@@ -106,6 +103,9 @@ else:
         df = show_data_analysis(data)
 
     with tab2:
+        if df is None:
+            st.info("Select the columns to be used by the forecasting model")
+
         if df is not None and len(df.columns) >= 2:
             model = st.selectbox("Select ML model", ["XGBoost", "FB Prophet"])
             if model == "FB Prophet":
