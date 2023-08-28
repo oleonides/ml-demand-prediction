@@ -13,7 +13,6 @@ from sklearn.metrics import mean_absolute_error
 
 def plot_raw_data(data, outcome: str):
     grouped_data = data[['year', 'month', outcome]]
-    st.write(grouped_data)
     grouped_data = grouped_data.groupby(['year', 'month'])[
         outcome].sum().reset_index()
     fig = px.line(grouped_data, x='month', y=outcome,
@@ -42,7 +41,7 @@ def plot_test_data(y_test: pd.DataFrame, xgb_fcst: pd.DataFrame):
 def display_metrics(test_data: pd.DataFrame, forecast: pd.DataFrame):
     st.subheader('Metrics')
     r2 = r2_score(test_data, forecast)
-    st.write(f'**Squared R:** {r2}')
+    st.write(f'**R Squared:** {r2}')
 
     mae = mean_absolute_error(test_data, forecast)
     st.write(f'**Mean Absolute Error:** {mae}')
@@ -80,14 +79,11 @@ def predict_demand_xgboost(data: pd.DataFrame):
             date_column = st.selectbox("Select date column", [
                                        None] + predictor_variables)
             if date_column is not None:
-                new_data['year'] = new_data[date_column].apply(
-                    lambda x: int(x[:4]))
-                new_data['month'] = new_data[date_column].apply(
-                    lambda x: int(x[5:7]))
-                new_data['weekday'] = new_data[date_column].apply(
-                    lambda x: int(x[8:10]))
+                new_data[date_column] = pd.to_datetime(new_data[date_column])
+                new_data['year'] = new_data[date_column].dt.year
+                new_data['month'] = new_data[date_column].dt.month
+                new_data['weekday'] = new_data[date_column].dt.weekday
 
-                new_data.drop(date_column, axis=1, inplace=True)
                 predictor_variables.remove(date_column)
                 predictor_variables = predictor_variables + \
                     ['year', 'month', 'weekday']
@@ -96,6 +92,11 @@ def predict_demand_xgboost(data: pd.DataFrame):
         if group_values:
             new_data = new_data.groupby(predictor_variables)[
                 y].sum().reset_index()
+
+        st.write(new_data)
+
+        plot_data = st.checkbox("Plot data")
+        if plot_data:
             plot_raw_data(new_data, y)
 
         start_training = st.checkbox("Train model")

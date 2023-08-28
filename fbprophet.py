@@ -32,7 +32,7 @@ def plot_test_data(test_data: pd.DataFrame, forecast: pd.DataFrame):
 def display_metrics(test_data: pd.DataFrame, forecast: pd.DataFrame):
     st.subheader('Metrics')
     r2 = r2_score(test_data['y'], forecast['yhat'])
-    st.write(f'**Squared R:** {r2}')
+    st.write(f'**R Squared:** {r2}')
 
     mae = mean_absolute_error(test_data['y'], forecast['yhat'])
     st.write(f'**Mean Absolute Error:** {mae}')
@@ -41,8 +41,7 @@ def display_metrics(test_data: pd.DataFrame, forecast: pd.DataFrame):
     st.write(f'**Mean Absolute Percentaje Error:** {mape}%')
 
 
-def train_model(data: pd.DataFrame, years: int):
-    period = years * 365
+def train_model(data: pd.DataFrame):
     train_data, test_data = train_test_split(
         data, test_size=0.2, shuffle=False)
 
@@ -62,6 +61,9 @@ def train_model(data: pd.DataFrame, years: int):
 
     start_forecast = st.checkbox("Start forecast")
     if start_forecast:
+        st.write("### Demand Forecasting")
+        years = st.slider('Years of prediction:', 1, 4)
+        period = years * 365
         future = m.make_future_dataframe(periods=period)
         forecast = m.predict(future)
 
@@ -78,9 +80,6 @@ def train_model(data: pd.DataFrame, years: int):
 
 
 def predict_demand_prophet(data: pd.DataFrame):
-    st.write("### Demand Forecasting")
-    n_years = st.slider('Years of prediction:', 1, 4)
-
     columns = data.columns.sort_values().tolist()
     ds = st.selectbox("Select DS variable", [None] + columns)
     y = st.selectbox("Select y variable", [None] + columns)
@@ -106,4 +105,4 @@ def predict_demand_prophet(data: pd.DataFrame):
 
         start_training = st.checkbox("Train model")
         if start_training:
-            train_model(new_data, n_years)
+            train_model(new_data)

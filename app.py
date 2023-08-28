@@ -107,8 +107,8 @@ else:
             st.info("Select the columns to be used by the forecasting model")
 
         if df is not None and len(df.columns) >= 2:
-            model = st.selectbox("Select ML model", ["XGBoost", "FB Prophet"])
-            if model == "FB Prophet":
+            model = st.selectbox("Select ML model", ["Prophet", "XGBoost"])
+            if model == "Prophet":
                 predict_demand_prophet(df)
             else:
                 predict_demand_xgboost(df)
